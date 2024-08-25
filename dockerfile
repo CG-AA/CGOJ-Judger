@@ -4,8 +4,9 @@ RUN apk update && apk add --no-cache \
     build-base \
     nginx \
     isolate \
-    curl \
     nlohmann-json3-dev \
+    libmicrohttpd-dev \
+    libspdlog-dev \
     && rm -rf /var/cache/apk/*
 
 # Configure isolate
