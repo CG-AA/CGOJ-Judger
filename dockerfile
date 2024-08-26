@@ -16,7 +16,7 @@ RUN mkdir -p /var/local/isolate/0 && \
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-COPY app.cpp /usr/src/app.cpp
+COPY main.cpp /usr/src/main.cpp
 
 RUN g++ /usr/src/main.cpp -o /usr/local/bin/app
 
@@ -24,5 +24,5 @@ EXPOSE 45803
 
 CMD ["sh", "-c", "nginx && /usr/local/bin/main"]
 
-#docker build -t CGJG .
-#docker run -p 45803:45803 CGJG
+#docker build -t cgjg .
+#docker run -p 45803:45803 cgjg
