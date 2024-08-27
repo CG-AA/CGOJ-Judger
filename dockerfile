@@ -29,8 +29,9 @@ RUN mkdir -p /var/local/isolate/0 && \
 COPY nginx.conf /etc/nginx/nginx.conf
 
 COPY main.cpp /usr/src/main.cpp
+COPY settings.json /usr/src/settings.json
 
-RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog
+RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog -lfmt
 
 EXPOSE 45803
 
