@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 
-RUN apt-get update
+RUN apt-get update --fix-missing
 RUN apt-get install -y \
     build-essential \
     nginx \
@@ -30,7 +30,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 COPY main.cpp /usr/src/main.cpp
 
-RUN g++ /usr/src/main.cpp -o /usr/local/bin/app
+RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog
 
 EXPOSE 45803
 
