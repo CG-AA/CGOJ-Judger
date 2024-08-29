@@ -13,7 +13,7 @@ bool server_running = true;
 nlohmann::json settings;
 
 void loadSettings() {
-    std::ifstream file("/usr/src/settings.json");
+    std::ifstream file("settings.json");
     if (!file.is_open()) {
         spdlog::error("Failed to open settings.json");
         throw std::runtime_error("Failed to open settings.json");

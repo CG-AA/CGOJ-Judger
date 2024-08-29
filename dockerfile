@@ -1,3 +1,47 @@
+FROM ubuntu:20.04 AS build
+
+RUN ls
+
+# Set environment variables to configure tzdata non-interactively
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+# Install dependencies and isolate
+RUN apt-get update && apt-get install -y \
+    asciidoc \
+    build-essential \
+    git \
+    libcap-dev \
+    pkg-config \
+    libsystemd-dev \
+    nlohmann-json3-dev \
+    libspdlog-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && git clone https://github.com/ioi/isolate.git /tmp/isolate \
+    && cd /tmp/isolate \
+    && make \
+    && make install \
+    && rm -rf /tmp/isolate
+
+# innstall libmicrohttpd
+RUN curl -sL https://mirror.ossplanet.net/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz | tar xz -C /tmp \
+    && cd /tmp/libmicrohttpd-* \
+    && ./configure \
+    && make \
+    && make install \
+    && rm -rf /tmp/libmicrohttpd-*
+
+# Configure isolate
+RUN mkdir -p /var/local/isolate/0 && \
+    isolate --init
+
+# Copy source code
+COPY main.cpp /usr/src/main.cpp
+
+# Compile the application
+RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog -lfmt
+
+# Runtime stage
 FROM ubuntu:20.04
 
 # Set environment variables to configure tzdata non-interactively
@@ -5,39 +49,23 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    pkg-config \
-    libcap-dev \
-    libsystemd-dev \
-    nlohmann-json3-dev \
+    nginx \
     libmicrohttpd-dev \
     libspdlog-dev \
-    git \
-    asciidoc \
     && rm -rf /var/lib/apt/lists/*
-
-# Install isolate
-RUN git clone https://github.com/ioi/isolate.git /tmp/isolate \
-    && cd /tmp/isolate \
-    && make \
-    && make install \
-    && rm -rf /tmp/isolate
-
-# Configure isolate
-RUN mkdir -p /var/local/isolate/0 && \
-    isolate --init
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-COPY main.cpp /usr/src/main.cpp
-COPY settings.json /usr/src/settings.json
+# Copy the compiled application and settings
+COPY --from=build /usr/local/bin/app /usr/local/bin/app
+COPY settings.json /usr/local/bin/settings.json
 
-RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog -lfmt
-
+# Expose the application port
 EXPOSE 45803
 
-CMD ["/usr/local/bin/app"]
+# Start nginx and the application
+CMD service nginx start && /usr/local/bin/
 
 #docker build -t cgjg .
 #docker run -p 45803:45803 cgjg
