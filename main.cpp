@@ -13,7 +13,7 @@ bool server_running = true;
 nlohmann::json settings;
 
 void loadSettings() {
-    std::ifstream file("settings.json");
+    std::ifstream file("/usr/src/settings.json");
     if (!file.is_open()) {
         spdlog::error("Failed to open settings.json");
         throw std::runtime_error("Failed to open settings.json");
@@ -30,11 +30,18 @@ void loadSettings() {
 MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
                                 const char *url, const char *method, const char *version,
                                 const char *upload_data, size_t *upload_data_size, void **con_cls) {
-    spdlog::info("Incoming request: URL: {}, Method: {}, Version: {}", url, method, version);
+    if (*con_cls == nullptr) {
+        // First call for this connection
+        spdlog::info("Incoming request: URL: {}, Method: {}, Version: {}", url, method, version);
+        *con_cls = (void*)1; // Mark this connection as processed
+        return MHD_YES;
+    }
+
     if (upload_data && *upload_data_size > 0) {
         spdlog::info("Upload data: {}", std::string(upload_data, *upload_data_size));
         *upload_data_size = 0; // Indicate that the upload data has been processed
     }
+
     return MHD_YES;
 }
 
@@ -47,6 +54,7 @@ int main() {
     }
 
     spdlog::info("Starting server...");
+    spdlog::info("Settings: {}", settings.dump());
 
     struct MHD_Daemon *daemon;
     daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, settings["port"].get<int>(), NULL, NULL, &answer_to_connection, NULL, MHD_OPTION_END);

@@ -3,7 +3,6 @@ FROM ubuntu:latest
 RUN apt-get update --fix-missing
 RUN apt-get install -y \
     build-essential \
-    nginx \
     pkg-config \
     libcap-dev \
     libsystemd-dev \
@@ -35,7 +34,7 @@ RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog -lfmt
 
 EXPOSE 45803
 
-CMD ["sh", "-c", "nginx && /usr/local/bin/app"]
+CMD ["/usr/local/bin/app"]
 
 #docker build -t cgjg .
 #docker run -p 45803:45803 cgjg
