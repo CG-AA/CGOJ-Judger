@@ -16,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     libsystemd-dev \
     nlohmann-json3-dev \
     libspdlog-dev \
+    curl \
+    libfmt-dev \
     && rm -rf /var/lib/apt/lists/* \
     && git clone https://github.com/ioi/isolate.git /tmp/isolate \
     && cd /tmp/isolate \
@@ -65,7 +67,7 @@ COPY settings.json /usr/local/bin/settings.json
 EXPOSE 45803
 
 # Start nginx and the application
-CMD service nginx start && /usr/local/bin/
+CMD cd /usr/local/bin && ./app
 
 #docker build -t cgjg .
 #docker run -p 45803:45803 cgjg
