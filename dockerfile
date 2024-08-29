@@ -1,7 +1,10 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
-RUN apt-get update --fix-missing
-RUN apt-get install -y \
+# Set environment variables to configure tzdata non-interactively
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     libcap-dev \
