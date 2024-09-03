@@ -12,6 +12,8 @@ bool server_running = true;
 
 nlohmann::json settings;
 
+struct MHD_Daemon *daemon;
+
 void loadSettings() {
     std::ifstream file("./settings.json");
     if (!file.is_open()) {
@@ -25,6 +27,18 @@ void loadSettings() {
         throw;
     }
     file.close();
+}
+
+void startServer() {
+    spdlog::info("Starting server...");
+    spdlog::info("Settings: {}", settings.dump());
+
+    daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, settings["port"].get<int>(), NULL, NULL, &answer_to_connection, NULL, MHD_OPTION_END);
+    if (NULL == daemon) {
+        spdlog::error("Failed to start server");
+        throw std::runtime_error("Failed to start server");
+    }
+    spdlog::info("Server started on port {}", settings["port"].get<int>());
 }
 
 MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
@@ -50,6 +64,12 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
     return MHD_YES;
 }
 
+void waitForServer(struct MHD_Daemon *daemon) {
+    std::unique_lock<std::mutex> lock(main_blocker);
+    main_blocker_cv.wait(lock, []{return !server_running;});
+    MHD_stop_daemon(daemon);
+}
+
 int main() {
     try {
         loadSettings();
@@ -57,22 +77,13 @@ int main() {
         std::cerr << "Error loading settings: " << e.what() << std::endl;
         return 1;
     }
-
-    spdlog::info("Starting server...");
-    spdlog::info("Settings: {}", settings.dump());
-
-    struct MHD_Daemon *daemon;
-    daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, settings["port"].get<int>(), NULL, NULL, &answer_to_connection, NULL, MHD_OPTION_END);
-    if (NULL == daemon) {
-        spdlog::error("Failed to start server");
+    try {
+        startServer();
+    } catch (const std::exception &e) {
+        std::cerr << "Error starting server: " << e.what() << std::endl;
         return 1;
     }
-    spdlog::info("Server started on port {}", settings["port"].get<int>());
-
     // Wait for server to stop
-    std::unique_lock<std::mutex> lock(main_blocker);
-    main_blocker_cv.wait(lock, []{return !server_running;});
-
-    MHD_stop_daemon(daemon);
+    waitForServer(daemon);
     return 0;
 }
