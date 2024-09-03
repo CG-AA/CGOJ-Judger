@@ -36,11 +36,16 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         *con_cls = (void*)1; // Mark this connection as processed
         return MHD_YES;
     }
-
     if (upload_data && *upload_data_size > 0) {
         spdlog::info("Upload data: {}", std::string(upload_data, *upload_data_size));
         *upload_data_size = 0; // Indicate that the upload data has been processed
     }
+
+    //response
+    const char *response = "Heard you loud and clear!";
+    struct MHD_Response *mhd_response = MHD_create_response_from_buffer(strlen(response), (void *) response, MHD_RESPMEM_PERSISTENT);
+    MHD_Result ret = MHD_queue_response(connection, MHD_HTTP_OK, mhd_response);
+    MHD_destroy_response(mhd_response);
 
     return MHD_YES;
 }
