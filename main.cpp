@@ -5,6 +5,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <iostream>
+#include <cstdlib>
 
 std::mutex main_blocker;
 std::condition_variable main_blocker_cv;
@@ -69,6 +70,23 @@ void waitForServer(struct MHD_Daemon *daemon) {
     main_blocker_cv.wait(lock, []{return !server_running;});
     MHD_stop_daemon(daemon);
 }
+
+std::string executeCommand(const std::string &command) {
+    spdlog::debug("Executing command:{} ", command);
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe) {
+        spdlog::error("Failed to open pipe");
+        throw std::runtime_error("Failed to open pipe");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result.append(buffer.data());
+    }
+    return result;
+}
+
+
 
 int main() {
     try {
