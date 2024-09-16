@@ -43,7 +43,7 @@ COPY main.cpp /usr/src/main.cpp
 RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -I/usr/local/lib -static -static-libgcc -static-libstdc++ -lmicrohttpd -lspdlog -lfmt -lpthread -lcryptopp -std=c++17
 
 # Runtime stage
-FROM ubuntu:20.04
+FROM ubuntu:20.04 AS runtime
 
 # Set environment variables to configure tzdata non-interactively
 # Prevent tzdata from asking for the timezone
@@ -53,6 +53,7 @@ ENV TZ=Etc/UTC
 RUN apt-get update && apt-get install -y \
     nginx \
     make \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install isolate
