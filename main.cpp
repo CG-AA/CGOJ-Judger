@@ -1,5 +1,6 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
+#include <sstream>
 #include <microhttpd.h>
 #include <spdlog/spdlog.h>
 #include <iostream>
@@ -393,7 +394,7 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         // Add up scores
         int totalScore = 0;
         for (const auto &caseResult : casesResult) {
-            totalScore += caseResult["sc"];
+            totalScore += caseResult["sc"].get<int>();
         }
         // Response
         nlohmann::json response;
