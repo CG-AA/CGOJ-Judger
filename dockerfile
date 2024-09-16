@@ -54,6 +54,8 @@ RUN apt-get update && apt-get install -y \
     nginx \
     make \
     pkg-config \
+    gcc \
+    libsystemd-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install isolate
