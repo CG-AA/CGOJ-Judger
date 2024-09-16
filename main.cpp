@@ -369,7 +369,7 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
                 throw;
             }
         } else {
-            spdlog::error("Unsupported language: {}", jsonData["lan"]);
+            spdlog::error("Unsupported language: {}", jsonData["lan"].get<std::string>());
             throw std::runtime_error("Unsupported language");
         }
         // Judge the program
