@@ -1,4 +1,6 @@
 {
     "port": 45803,
-    "token": "replace_me"
+    "token": "replace_me",
+    "pending_pool_size": 10000,
+    "program_run_extra_time_ms": 5000
 }

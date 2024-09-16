@@ -1,31 +1,27 @@
 FROM ubuntu:20.04 AS build
 
-RUN ls
-
 # Set environment variables to configure tzdata non-interactively
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
 # Install dependencies and isolate
 RUN apt-get update && apt-get install -y \
-    asciidoc \
     build-essential \
     git \
+    cmake \
     libcap-dev \
     pkg-config \
     libsystemd-dev \
     nlohmann-json3-dev \
-    libspdlog-dev \
     curl \
     libfmt-dev \
+    libcrypto++-dev \
     && rm -rf /var/lib/apt/lists/* \
     && git clone https://github.com/ioi/isolate.git /tmp/isolate \
     && cd /tmp/isolate \
-    && make \
-    && make install \
-    && rm -rf /tmp/isolate
+    && make isolate 
 
-# innstall libmicrohttpd
+# Install libmicrohttpd
 RUN curl -sL https://mirror.ossplanet.net/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz | tar xz -C /tmp \
     && cd /tmp/libmicrohttpd-* \
     && ./configure \
@@ -33,28 +29,37 @@ RUN curl -sL https://mirror.ossplanet.net/gnu/libmicrohttpd/libmicrohttpd-latest
     && make install \
     && rm -rf /tmp/libmicrohttpd-*
 
-# Configure isolate
-RUN mkdir -p /var/local/isolate/0 && \
-    isolate --init
+# Install spdlog
+RUN git clone https://github.com/gabime/spdlog.git \
+    && cd spdlog && mkdir build && cd build \
+    && cmake .. && make -j \
+    && make install \
+    && rm -rf /spdlog
 
 # Copy source code
 COPY main.cpp /usr/src/main.cpp
 
-# Compile the application
-RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -lmicrohttpd -lspdlog -lfmt
+# Compile the application (c++17)
+RUN g++ /usr/src/main.cpp -o /usr/local/bin/app -I/usr/local/lib -static -static-libgcc -static-libstdc++ -lmicrohttpd -lspdlog -lfmt -lpthread -lcryptopp -std=c++17
 
 # Runtime stage
 FROM ubuntu:20.04
 
 # Set environment variables to configure tzdata non-interactively
+# Prevent tzdata from asking for the timezone
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
 RUN apt-get update && apt-get install -y \
     nginx \
-    libmicrohttpd-dev \
-    libspdlog-dev \
+    make \
     && rm -rf /var/lib/apt/lists/*
+
+# Install isolate
+COPY --from=build /tmp/isolate /tmp/isolate
+RUN cd /tmp/isolate \
+    && make install \
+    && rm -rf /tmp/isolate
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -63,11 +68,10 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /usr/local/bin/app /usr/local/bin/app
 COPY settings.json /usr/local/bin/settings.json
 
-# Expose the application port
 EXPOSE 45803
 
-# Start nginx and the application
 CMD cd /usr/local/bin && ./app
+# COPY --from=build /usr/src/main.cpp /usr/src/main.cpp
 
 #docker build -t cgjg .
 #docker run -p 45803:45803 cgjg

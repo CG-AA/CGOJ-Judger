@@ -1,0 +1,5 @@
+isolate:
+
+command options should add to `isolate --run` not `isolate --init`
+should use chmod to give permission to the file
+`chmod -R 777 {path}`
