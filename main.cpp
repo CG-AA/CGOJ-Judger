@@ -188,8 +188,18 @@ std::string findInMeta(const std::string &metaPath, const std::string &key) {
     throw std::runtime_error("Key not found in meta file");
 }
 
+bool isSpecialChar(char c) {
+    return !std::isalnum(c) && !std::isspace(c);
+}
 
-nlohmann::json runTestCase(const std::string &binPath, const nlohmann::json &testCase) {
+std::string removeSpecialChars(const std::string &str) {
+    std::string result = str;
+    result.erase(std::remove_if(result.begin(), result.end(), isSpecialChar), result.end());
+    return result;
+}
+
+
+nlohmann::json runTestCase(const std::string &binPath, const nlohmann::json &testCase, const bool noSC) {
     typedef std::string sstr;
     sstr cuttedPath;
     size_t pos = binPath.find_last_of('/');
@@ -282,8 +292,9 @@ nlohmann::json runTestCase(const std::string &binPath, const nlohmann::json &tes
         }
         std::stringstream outBuffer;
         outBuffer << outFile.rdbuf();
-        sstr outContent = outBuffer.str();
-        if (outContent == testCase["ou"].get<sstr>()) {
+        sstr outContent = removeSpecialChars(outBuffer.str());
+        sstr expectedOut = removeSpecialChars(testCase["ou"].get<sstr>());
+        if (outContent == expectedOut) {
             result["sc"] = testCase["sc"].get<int>();
             result["st"] = "AC";
         } else {
@@ -300,15 +311,15 @@ nlohmann::json runTestCase(const std::string &binPath, const nlohmann::json &tes
     return result;
 }
 
-nlohmann::json judgeProgram(const std::string &binPath, const nlohmann::json &cases) {
+nlohmann::json judgeProgram(const std::string &binPath, const nlohmann::json &cases, const bool noSC) {
     nlohmann::json result;
-    std::vector<std::thread> threads;
+    std::vector<std::thread> threads;;
 
     for (const auto &testCase : cases) {
-        threads.emplace_back([binPath, testCase, &result]() {
+        threads.emplace_back([binPath, testCase, &result, noSC]() {
             nlohmann::json caseResult;
             try {
-                caseResult = runTestCase(binPath, testCase);
+                caseResult = runTestCase(binPath, testCase, noSC);
             } catch (const std::exception &e) {
                 spdlog::error("Error running test case: {}", e.what());
                 caseResult["id"] = testCase["id"];
@@ -375,7 +386,7 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         // Judge the program
         nlohmann::json casesResult;
         try {
-            casesResult = judgeProgram(binPath, jsonData["cases"]);
+            casesResult = judgeProgram(binPath, jsonData["cases"], jsonData["noSC"].get<bool>());
         } catch (const std::exception &e) {
             spdlog::error("Error judging program: {}", e.what());
             throw;
