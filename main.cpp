@@ -420,11 +420,6 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         response["totalScore"] = totalScore;
         std::string responseStr = response.dump();
         // Encrypt the response
-        std::string key = jsonData["key"].get<std::string>();
-        // fill the key with 0s if it is less than 16 bytes
-        if (key.size() < 16) {
-            key.append(16 - key.size(), '0');
-        }
         std::string encryptedResponse = encrypt(responseStr, key);
         struct MHD_Response *mhd_response = MHD_create_response_from_buffer(encryptedResponse.size(), (void *) encryptedResponse.c_str(), MHD_RESPMEM_PERSISTENT);
         MHD_add_response_header(mhd_response, "Content-Type", "application/json");
