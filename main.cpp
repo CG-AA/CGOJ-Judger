@@ -358,7 +358,12 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         *upload_data_size = 0; // Indicate that the upload data has been processed
 
         // Decrypt the data and prase it
-        std::string decryptedData = decrypt(data, settings["token"].get<std::string>());
+        std::string key = settings["token"].get<std::string>();
+        // fill the key with 0s if it is less than 16 bytes
+        if (key.size() < 16) {
+            key.append(16 - key.size(), '0');
+        }
+        std::string decryptedData = decrypt(data, key);
         nlohmann::json jsonData = nlohmann::json::parse(decryptedData);
         // check code, lan, cases, linkLibs
         try {
@@ -415,7 +420,12 @@ MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
         response["totalScore"] = totalScore;
         std::string responseStr = response.dump();
         // Encrypt the response
-        std::string encryptedResponse = encrypt(responseStr, settings["token"].get<std::string>());
+        std::string key = jsonData["key"].get<std::string>();
+        // fill the key with 0s if it is less than 16 bytes
+        if (key.size() < 16) {
+            key.append(16 - key.size(), '0');
+        }
+        std::string encryptedResponse = encrypt(responseStr, key);
         struct MHD_Response *mhd_response = MHD_create_response_from_buffer(encryptedResponse.size(), (void *) encryptedResponse.c_str(), MHD_RESPMEM_PERSISTENT);
         MHD_add_response_header(mhd_response, "Content-Type", "application/json");
         MHD_Result ret = MHD_queue_response(connection, MHD_HTTP_OK, mhd_response);

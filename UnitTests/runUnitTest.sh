@@ -1,10 +1,10 @@
 #!/bin/bash
 
 URL="http://localhost:45803"
-json_content=$(cat "UnitTest_1in.json")
+content=$(cat "UnitTest_1in.enc")
 
 # Send the content of UnitTest.json to the server and capture the response body and HTTP status code
-response=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d "$json_content" $URL)
+response=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/octet-stream" -d "$content" $URL)
 
 # Extract the HTTP status code from the response
 http_code=$(echo "$response" | tail -n1)
